@@ -1,0 +1,265 @@
+Bonne idée pour un POC (Proof of Concept) 👍.
+Le but n’est pas de faire tout le système, mais seulement prouver que les 3 technologies fonctionnent ensemble :
+
+Svelte → interface
+
+Spring Boot → API + calcul
+
+PostgreSQL → stockage
+
+On va faire le cas le plus simple possible :
+➡️ entrer temps écoulé + handicap
+➡️ le backend calcule temps corrigé
+➡️ le résultat est sauvegardé en base
+
+Formule :
+
+temps_corrige = temps_ecoule * 1000 / handicap
+1️⃣ Base de données PostgreSQL
+
+Table minimale :
+
+CREATE TABLE resultats (
+    id SERIAL PRIMARY KEY,
+    temps_ecoule INT,
+    handicap INT,
+    temps_corrige INT
+);
+2️⃣ Backend Spring Boot
+Modèle
+@Entity
+public class Resultat {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private int tempsEcoule;
+    private int handicap;
+    private int tempsCorrige;
+
+    // getters setters
+}
+Repository
+public interface ResultatRepository extends JpaRepository<Resultat, Long> {
+}
+Controller avec calcul
+@RestController
+@RequestMapping("/calcul")
+@CrossOrigin
+public class CalculController {
+
+    private final ResultatRepository repo;
+
+    public CalculController(ResultatRepository repo) {
+        this.repo = repo;
+    }
+
+    @PostMapping
+    public Resultat calculer(@RequestBody Resultat r) {
+
+        int corrige = r.getTempsEcoule() * 1000 / r.getHandicap();
+        r.setTempsCorrige(corrige);
+
+        return repo.save(r);
+    }
+}
+3️⃣ Frontend Svelte
+
+Interface ultra simple.
+
+<script>
+  let temps = "";
+  let handicap = "";
+  let resultat = null;
+
+  async function calculer() {
+    const res = await fetch("http://localhost:8080/calcul", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        tempsEcoule: Number(temps),
+        handicap: Number(handicap)
+      })
+    });
+
+    resultat = await res.json();
+  }
+</script>
+
+<h2>Calcul handicap</h2>
+
+<input placeholder="Temps écoulé (secondes)" bind:value={temps}>
+<input placeholder="Handicap" bind:value={handicap}>
+
+<button on:click={calculer}>
+Calculer
+</button>
+
+{#if resultat}
+<p>Temps corrigé : {resultat.tempsCorrige}</p>
+{/if}
+4️⃣ Démonstration pendant la présentation
+
+Tu montres simplement :
+
+1️⃣ Lancer PostgreSQL
+
+2️⃣ Lancer Spring Boot
+
+localhost:8080
+
+3️⃣ Lancer Svelte
+
+localhost:5173
+
+4️⃣ Entrer par exemple :
+
+Temps écoulé : 4462
+Handicap : 1100
+
+Résultat affiché :
+
+Temps corrigé : 4056
+
+Et tu expliques :
+
+"Le frontend Svelte envoie les données à Spring Boot.
+Spring Boot calcule le temps corrigé et l'enregistre dans PostgreSQL.
+Le résultat est ensuite renvoyé au frontend."
+
+5️⃣ Ce que prouve ce POC
+
+✅ communication Svelte → Spring Boot
+✅ calcul côté backend
+✅ sauvegarde Spring Boot → PostgreSQL
+✅ retour du résultat dans l'interface
+
+Donc les 3 technologies fonctionnent ensemble.
+
+💡 Si tu veux, je peux aussi te montrer une architecture POC parfaite pour un rapport universitaire (structure des dossiers + diagramme). C’est souvent demandé dans ce type de projet.
+
+parfait quel application dois je utiliser pour tout ca 
+
+Pour faire ce petit POC avec Svelte + Spring Boot + PostgreSQL, tu as seulement besoin de quelques outils simples. Voici la configuration la plus facile pour un projet étudiant / démo. 🚀
+
+1️⃣ Éditeur de code
+
+Je recommande :
+
+Visual Studio Code
+
+Pourquoi :
+
+léger
+
+fonctionne pour Java + Svelte + SQL
+
+beaucoup d’extensions utiles
+
+Extensions utiles :
+
+Java Extension Pack
+
+Svelte for VS Code
+
+PostgreSQL
+
+2️⃣ Backend (Spring Boot)
+
+Pour créer ton projet Spring Boot, utilise :
+
+Spring Initializr
+
+Site :
+
+https://start.spring.io
+
+Choisis :
+
+Project: Maven
+Language: Java
+Spring Boot: dernière version
+Dependencies:
+- Spring Web
+- Spring Data JPA
+- PostgreSQL Driver
+
+Télécharge ensuite le projet et ouvre-le dans VS Code.
+
+3️⃣ Base de données
+
+Installe :
+
+PostgreSQL
+
+Pendant l’installation :
+
+user : postgres
+
+password : ton mot de passe
+
+port : 5432
+
+Pour gérer la base facilement, installe aussi :
+
+pgAdmin
+
+C’est une interface graphique pour voir les tables et données. 📊
+
+4️⃣ Frontend Svelte
+
+Pour créer le projet :
+
+Installe d’abord :
+
+Node.js
+
+Puis dans le terminal :
+
+npm create vite@latest frontend
+
+Choisir :
+
+Framework : Svelte
+
+Puis :
+
+cd frontend
+npm install
+npm run dev
+
+Ton site sera sur :
+
+http://localhost:5173
+5️⃣ Outil pour tester l’API (optionnel mais pratique)
+
+Postman
+
+Il permet de tester ton API Spring Boot sans le frontend.
+
+6️⃣ Les 3 programmes à lancer
+
+Pour la démo finale :
+
+Technologie	Programme	Port
+PostgreSQL	PostgreSQL	5432
+Backend	Spring Boot	8080
+Frontend	Svelte	5173
+
+Flux :
+
+Svelte → Spring Boot → PostgreSQL
+7️⃣ Ce que tu montres dans la démo
+
+1️⃣ ouvrir la page Svelte
+2️⃣ entrer temps + handicap
+3️⃣ cliquer calculer
+4️⃣ résultat affiché
+5️⃣ montrer dans pgAdmin que la ligne est enregistrée
+
+👉 Ça prouve que les 3 technologies fonctionnent ensemble.
+
+✅ Si tu veux, je peux aussi te montrer la structure de projet la plus simple possible (5 fichiers seulement) pour ton POC, afin que ce soit très rapide à coder et très propre pour la présentation.

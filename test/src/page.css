@@ -1,0 +1,14 @@
+  main {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+  }
+
+  input {
+    padding: 8px;
+    margin-right: 10px;
+  }
+
+  button {
+    padding: 8px 14px;
+    cursor: pointer;
+  }
