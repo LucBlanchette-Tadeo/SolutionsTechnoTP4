@@ -1,13 +1,16 @@
-Commande pour post (Changer NomBateau)
+COMMANDE POUR POST (Changer NomBateau)
 Invoke-RestMethod -Uri "http://localhost:8080/api/messages" `
   -Method Post `
   -ContentType 'application/json' `
   -Body '{"text":"NomBateau"}'
 
-commande pour get (voir la liste dans la bd)
+COMMANDE POUR GET (voir la liste dans la bd)
 Invoke-RestMethod -Uri "http://localhost:8080/api/messages" -Method Get
 
 
+
+
+COMMANDES POUR LANCER L'APPLICATION
 
 Sur Powershell
 
