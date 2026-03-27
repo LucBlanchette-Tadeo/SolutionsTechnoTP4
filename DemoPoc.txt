@@ -14,14 +14,17 @@ COMMANDES POUR LANCER L'APPLICATION
 
 Sur Powershell
 
+étape 1.
 cd .\Desktop\poc-svelte-spring-postgres\db
 docker compose up -d
 
+étape 2.
 cd ..\backend
 ./mvnw clean spring-boot:run
 
 sur Code
 
+étape 1.
 cd .\frontend
 npm install
 echo VITE_API_URL=http://localhost:8080/api > .env
