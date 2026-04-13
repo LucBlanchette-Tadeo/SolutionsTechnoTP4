@@ -423,7 +423,7 @@
 
 <div class="app">
   <nav class="navbar">
-    <h1 class="logo">⛵ Bateau Manager</h1>
+    <h1 class="logo"> YRR </h1>
     <div class="nav-buttons">
       <button 
         class:active={currentPage === 'home'} 
@@ -470,7 +470,7 @@
     <!-- HOME PAGE -->
     {#if currentPage === 'home'}
       <div class="hero">
-        <h2>Bienvenue au Bateau Manager 🌊</h2>
+        <h2>Bienvenue 🌊</h2>
         <p>Gérez facilement votre flotte de bateaux de voile</p>
         <div class="hero-buttons">
           <button class="btn-primary" on:click={() => goToPage('bateaux')}>
