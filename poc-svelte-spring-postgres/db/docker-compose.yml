@@ -1,0 +1,9 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: pocdb
+      POSTGRES_USER: poc
+      POSTGRES_PASSWORD: poc
+    ports:
+      - "5433:5432"
