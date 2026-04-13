@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Login from './lib/Login.svelte';
 
   // États
+  let isAuthenticated = false;
+  let currentUsername = '';
   let currentPage = 'home';
   let error = '';
   let success = '';
@@ -414,49 +417,84 @@
   }
 
   onMount(async () => {
-    await fetchBateaux();
-    await fetchClasses();
-    await fetchSeries();
-    await fetchClassesCourse();
+    // Vérifier si l'utilisateur est déjà authentifié
+    const authenticated = localStorage.getItem('authenticated');
+    const username = localStorage.getItem('username');
+    
+    if (authenticated === 'true' && username) {
+      isAuthenticated = true;
+      currentUsername = username;
+      await fetchBateaux();
+      await fetchClasses();
+      await fetchSeries();
+      await fetchClassesCourse();
+    }
   });
+
+  function handleLoginSuccess(username: string) {
+    isAuthenticated = true;
+    currentUsername = username;
+    currentPage = 'home';
+    fetchBateaux();
+    fetchClasses();
+    fetchSeries();
+    fetchClassesCourse();
+  }
+
+  function handleLogout() {
+    isAuthenticated = false;
+    currentUsername = '';
+    localStorage.removeItem('authenticated');
+    localStorage.removeItem('username');
+    currentPage = 'home';
+  }
 </script>
 
 <div class="app">
-  <nav class="navbar">
-    <h1 class="logo"> YRR </h1>
-    <div class="nav-buttons">
-      <button 
-        class:active={currentPage === 'home'} 
-        on:click={() => goToPage('home')}
-      >
-        🏠 Accueil
-      </button>
-      <button 
-        class:active={currentPage === 'bateaux'} 
-        on:click={() => goToPage('bateaux')}
-      >
-        🚤 Bateaux
-      </button>
-      <button 
-        class:active={currentPage === 'classes'} 
-        on:click={() => goToPage('classes')}
-      >
-        📋 Classes
-      </button>
-      <button 
-        class:active={currentPage === 'series'} 
-        on:click={() => goToPage('series')}
-      >
-        🏆 Séries
-      </button>
-      <button 
-        class:active={currentPage === 'courses'} 
-        on:click={() => goToPage('courses')}
-      >
-        🏁 Courses
-      </button>
-    </div>
-  </nav>
+  {#if !isAuthenticated}
+    <Login onLoginSuccess={handleLoginSuccess} />
+  {:else}
+    <nav class="navbar">
+      <h1 class="logo"> YRR </h1>
+      <div class="nav-buttons">
+        <button 
+          class:active={currentPage === 'home'} 
+          on:click={() => goToPage('home')}
+        >
+          🏠 Accueil
+        </button>
+        <button 
+          class:active={currentPage === 'bateaux'} 
+          on:click={() => goToPage('bateaux')}
+        >
+          🚤 Bateaux
+        </button>
+        <button 
+          class:active={currentPage === 'classes'} 
+          on:click={() => goToPage('classes')}
+        >
+          📋 Classes
+        </button>
+        <button 
+          class:active={currentPage === 'series'} 
+          on:click={() => goToPage('series')}
+        >
+          🏆 Séries
+        </button>
+        <button 
+          class:active={currentPage === 'courses'} 
+          on:click={() => goToPage('courses')}
+        >
+          🏁 Courses
+        </button>
+        <div class="user-section">
+          <span class="username">👤 {currentUsername}</span>
+          <button class="logout-btn" on:click={handleLogout}>
+            🚪 Déconnexion
+          </button>
+        </div>
+      </div>
+    </nav>
 
   <main class="content">
     {#if error}
@@ -757,6 +795,7 @@
       </div>
     {/if}
   </main>
+  {/if}
 </div>
 
 <style>
@@ -816,6 +855,39 @@
     background: rgba(255, 255, 255, 0.4);
     border-color: white;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+
+  .user-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  .username {
+    color: white;
+    font-weight: 600;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+  }
+
+  .logout-btn {
+    background: rgba(255, 59, 48, 0.8);
+    color: white;
+    border: 2px solid transparent;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    font-size: 0.95em;
+  }
+
+  .logout-btn:hover {
+    background: rgba(255, 59, 48, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4);
   }
 
   .content {

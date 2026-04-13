@@ -53,6 +53,10 @@ echo   Frontend: http://localhost:5173
 echo   Backend API: http://localhost:8080/api
 echo   Base de données: localhost:5433
 echo.
+echo 🔐 Identifiants de connexion:
+echo   Utilisateur: admin
+echo   Mot de passe: Admin123!
+echo.
 echo Gestion des bateaux: http://localhost:5173/bateaux
 echo.
 echo Appuyez sur Ctrl+C dans les fenêtres pour arrêter les services

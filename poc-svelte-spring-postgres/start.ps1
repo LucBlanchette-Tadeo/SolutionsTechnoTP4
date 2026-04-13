@@ -58,6 +58,10 @@ Write-Host "  Frontend: http://localhost:5173" -ForegroundColor White
 Write-Host "  Backend API: http://localhost:8080/api" -ForegroundColor White
 Write-Host "  Base de données: localhost:5433" -ForegroundColor White
 Write-Host ""
+Write-Host "🔐 Identifiants de connexion:" -ForegroundColor Cyan
+Write-Host "  Utilisateur: admin" -ForegroundColor White
+Write-Host "  Mot de passe: Admin123!" -ForegroundColor White
+Write-Host ""
 Write-Host "Gestion des bateaux: http://localhost:5173/bateaux" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Appuyez sur Ctrl+C dans les fenêtres pour arrêter les services" -ForegroundColor Gray
