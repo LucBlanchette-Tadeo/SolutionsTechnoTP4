@@ -105,3 +105,47 @@ export async function createClasseCourse(payload: any) {
   if (!res.ok) throw new Error(`POST failed: ${res.status}`);
   return res.json();
 }
+
+// Inscriptions aux courses
+export async function listInscriptionsByCourse(classeCourseId: number) {
+  const res = await fetch(`${BASE}/inscriptions/course/${classeCourseId}`);
+  if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getAvailableBateaux(classeCourseId: number) {
+  const res = await fetch(`${BASE}/inscriptions/disponibles/${classeCourseId}`);
+  if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+  return res.json();
+}
+
+export async function addBateauToCourse(bateauId: number, classeCourseId: number) {
+  const res = await fetch(`${BASE}/inscriptions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bateauId, classeCourseId })
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || `POST failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function removeBateauFromCourse(inscriptionId: number) {
+  const res = await fetch(`${BASE}/inscriptions/${inscriptionId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+  return res.json();
+}
+
+export async function updateClassement(inscriptionId: number, classement: number | null) {
+  const res = await fetch(`${BASE}/inscriptions/${inscriptionId}/classement`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classement })
+  });
+  if (!res.ok) throw new Error(`PATCH failed: ${res.status}`);
+  return res.json();
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Login from './lib/Login.svelte';
+  import Courses from './routes/courses.svelte';
 
   // États
   let isAuthenticated = false;
@@ -731,68 +732,7 @@
 
     <!-- COURSES PAGE -->
     {:else if currentPage === 'courses'}
-      <div class="page">
-        <h2>🏁 Gestion des Classes de Course</h2>
-        
-        <div class="form-section">
-          <h3>{editingClasseCourse ? '✏️ Modifier' : '➕ Ajouter une nouvelle classe de course'}</h3>
-          <form on:submit|preventDefault={addClasseCourse}>
-            <input 
-              type="text"
-              placeholder="Nom de la classe de course" 
-              bind:value={classeCourseForm.nom}
-              disabled={loading}
-            />
-            <select bind:value={classeCourseForm.type} disabled={loading}>
-              <option value="monotype">Monotype</option>
-              <option value="handicap">Handicap</option>
-            </select>
-            <div class="form-buttons">
-              <button type="submit" disabled={loading} class="btn-primary">
-                {loading ? '⏳ Traitement...' : (editingClasseCourse ? '💾 Mettre à jour' : '➕ Créer')}
-              </button>
-              {#if editingClasseCourse}
-                <button type="button" on:click={cancelEditClasseCourse} class="btn-secondary">
-                  ❌ Annuler
-                </button>
-              {/if}
-            </div>
-          </form>
-        </div>
-
-        <div class="table-section">
-          <h3>Classes de course ({classesCourse.length})</h3>
-          {#if classesCourse.length > 0}
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nom</th>
-                    <th>Type</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each classesCourse as cc (cc.id)}
-                    <tr>
-                      <td>#{cc.id}</td>
-                      <td><strong>{cc.nomClasseCourse}</strong></td>
-                      <td><span class="badge-type">{cc.typeClasse}</span></td>
-                      <td class="actions">
-                        <button class="btn-edit" on:click={() => editClasseCourse(cc)} disabled={loading}>✏️ Modifier</button>
-                        <button class="btn-delete" on:click={() => deleteClasseCourse(cc.id)} disabled={loading}>🗑️ Supprimer</button>
-                      </td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-          {:else}
-            <p class="empty">Aucune classe de course. Créez-en une ci-dessus ! 👆</p>
-          {/if}
-        </div>
-      </div>
+      <Courses />
     {/if}
   </main>
   {/if}
