@@ -29,6 +29,15 @@
   let editingSerie: any = null;
   let editingClasseCourse: any = null;
 
+  // État pour gérer les courses dans les séries
+  let selectedSerieForCourses: any = null;
+  let seriesCourses: any[] = [];
+  let availableClassesCourseForSerie: any[] = [];
+  let selectedClasseCourseIdToAdd = '';
+  let showLeaderboardModal = false;
+  let selectedCourseForLeaderboard: any = null;
+  let leaderboardData: any[] = [];
+
   // API
   const API = 'http://localhost:8080/api';
 
@@ -325,6 +334,92 @@
   function cancelEditSerie() {
     editingSerie = null;
     serieForm = { nom: '', classeCourseId: '' };
+  }
+
+  // ============= SERIE COURSES FUNCTIONS =============
+  async function selectSerieForCourses(serie: any) {
+    selectedSerieForCourses = serie;
+    try {
+      const res = await fetch(`${API}/serie-classe-course/serie/${serie.id}`);
+      if (!res.ok) throw new Error('Erreur API');
+      seriesCourses = await res.json();
+      updateAvailableClassesCourse();
+    } catch (e: any) {
+      error = '❌ ' + (e.message || 'Erreur inconnue');
+      setTimeout(() => { error = ''; }, 3000);
+    }
+  }
+
+  function updateAvailableClassesCourse() {
+    const linkedIds = seriesCourses.map((sc: any) => sc.classeCourse.id);
+    availableClassesCourseForSerie = classesCourse.filter(c => !linkedIds.includes(c.id));
+  }
+
+  async function addCourseToSerie() {
+    if (!selectedSerieForCourses || !selectedClasseCourseIdToAdd) {
+      error = '❌ Veuillez sélectionner une course';
+      return;
+    }
+    try {
+      loading = true;
+      const payload = {
+        serie: { id: selectedSerieForCourses.id },
+        classeCourse: { id: parseInt(selectedClasseCourseIdToAdd) },
+        ordreCourse: seriesCourses.length + 1
+      };
+
+      const res = await fetch(`${API}/serie-classe-course`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Erreur ${res.status}: ${errorText}`);
+      }
+
+      success = '✅ Course ajoutée à la série!';
+      selectedClasseCourseIdToAdd = '';
+      await selectSerieForCourses(selectedSerieForCourses);
+      setTimeout(() => { success = ''; }, 3000);
+    } catch (e: any) {
+      error = '❌ ' + (e.message || 'Erreur inconnue');
+      setTimeout(() => { error = ''; }, 3000);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function removeCourseFromSerie(id: number) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette course de la série ?')) return;
+    try {
+      loading = true;
+      const res = await fetch(`${API}/serie-classe-course/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erreur suppression');
+      success = '✅ Course supprimée de la série!';
+      await selectSerieForCourses(selectedSerieForCourses);
+      setTimeout(() => { success = ''; }, 3000);
+    } catch (e: any) {
+      error = '❌ ' + e.message;
+      setTimeout(() => { error = ''; }, 3000);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function showCourseLeaderboard(course: any) {
+    try {
+      selectedCourseForLeaderboard = course;
+      // Utiliser l'endpoint des inscriptions pour la course
+      const res = await fetch(`${API}/inscriptions/course/${course.classeCourse.id}`);
+      if (!res.ok) throw new Error('Erreur API');
+      leaderboardData = await res.json();
+      showLeaderboardModal = true;
+    } catch (e: any) {
+      error = '❌ ' + (e.message || 'Erreur inconnue');
+      setTimeout(() => { error = ''; }, 3000);
+    }
   }
 
   // ============= CLASSE COURSE FUNCTIONS =============
@@ -666,69 +761,210 @@
     <!-- SERIES PAGE -->
     {:else if currentPage === 'series'}
       <div class="page">
-        <h2>🏆 Gestion des Séries</h2>
+        <h2>📊 Gestion des Séries et Courses</h2>
         
-        <div class="form-section">
-          <h3>{editingSerie ? '✏️ Modifier la série' : '➕ Ajouter une nouvelle série'}</h3>
-          <form on:submit|preventDefault={addSerie}>
-            <input 
-              type="text"
-              placeholder="Nom de la série" 
-              bind:value={serieForm.nom}
-              disabled={loading}
-            />
-            <select bind:value={serieForm.classeCourseId} disabled={loading}>
-              <option value="">-- Sélectionner une classe de course --</option>
-              {#each classesCourse as cc (cc.id)}
-                <option value={cc.id}>{cc.nomClasseCourse}</option>
-              {/each}
-            </select>
-            <div class="form-buttons">
-              <button type="submit" disabled={loading} class="btn-primary">
-                {loading ? '⏳ Traitement...' : (editingSerie ? '💾 Mettre à jour' : '➕ Créer')}
-              </button>
-              {#if editingSerie}
-                <button type="button" on:click={cancelEditSerie} class="btn-secondary">
-                  ❌ Annuler
-                </button>
+        <!-- ÉTAPE 1: Instructions -->
+        <div class="series-container">
+          <!-- PANNEAU GAUCHE: Créer et lister les séries -->
+          <div class="left-panel">
+            <div class="form-section">
+              <h3>{editingSerie ? '✏️ Modifier la série' : '➕ Créer une nouvelle série'}</h3>
+              <form on:submit|preventDefault={addSerie}>
+                <input 
+                  type="text"
+                  placeholder="Nom de la série (ex: Monotypes 2024)" 
+                  bind:value={serieForm.nom}
+                  disabled={loading}
+                />
+                <select bind:value={serieForm.classeCourseId} disabled={loading}>
+                  <option value="">-- Sélectionner la classe de course --</option>
+                  {#each classesCourse as cc (cc.id)}
+                    <option value={cc.id}>{cc.nomClasseCourse}</option>
+                  {/each}
+                </select>
+                <div class="form-buttons">
+                  <button type="submit" disabled={loading} class="btn-primary">
+                    {loading ? '⏳ Traitement...' : (editingSerie ? '💾 Mettre à jour' : '➕ Créer')}
+                  </button>
+                  {#if editingSerie}
+                    <button type="button" on:click={cancelEditSerie} class="btn-secondary">
+                      ❌ Annuler
+                    </button>
+                  {/if}
+                </div>
+              </form>
+            </div>
+
+            <div class="table-section">
+              <h3>📋 Séries existantes ({series.length})</h3>
+              <p class="section-hint">💡 Cliquez sur une série pour la sélectionner</p>
+              {#if series.length > 0}
+                <div class="series-list">
+                  {#each series as s (s.id)}
+                    <div 
+                      class="serie-item {serieForm.nom && series.find(x => x.id === editingSerie?.id)?.id === s.id ? 'active' : ''}"
+                      on:click={() => { selectSerieForCourses(s); }}
+                    >
+                      <div class="serie-header">
+                        <strong>{s.nomSerie}</strong>
+                      </div>
+                      <div class="serie-info">
+                        <small>Classe: {s.classeCourse?.nomClasseCourse}</small>
+                      </div>
+                      <div class="serie-actions">
+                        <button class="btn-edit" on:click|stopPropagation={() => editSerie(s)} disabled={loading}>✏️</button>
+                        <button class="btn-delete" on:click|stopPropagation={() => deleteSerie(s.id)} disabled={loading}>🗑️</button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <p class="empty">Aucune série. Créez-en une ci-dessus ! 👆</p>
               {/if}
             </div>
-          </form>
-        </div>
+          </div>
 
-        <div class="table-section">
-          <h3>Séries existantes ({series.length})</h3>
-          {#if series.length > 0}
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nom</th>
-                    <th>Classe de Course</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each series as s (s.id)}
-                    <tr>
-                      <td>#{s.id}</td>
-                      <td><strong>{s.nomSerie}</strong></td>
-                      <td><span class="badge">{s.classeCourse?.nomClasseCourse}</span></td>
-                      <td class="actions">
-                        <button class="btn-edit" on:click={() => editSerie(s)} disabled={loading}>✏️ Modifier</button>
-                        <button class="btn-delete" on:click={() => deleteSerie(s.id)} disabled={loading}>🗑️ Supprimer</button>
-                      </td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-          {:else}
-            <p class="empty">Aucune série. Créez-en une ci-dessus ! 👆</p>
-          {/if}
+          <!-- PANNEAU DROIT: Gérer les courses de la série -->
+          <div class="right-panel">
+            {#if selectedSerieForCourses !== null}
+              <div class="table-section">
+                <div class="serie-selected-header">
+                  <h2>🏁 Courses - {selectedSerieForCourses.nomSerie}</h2>
+                  <span class="badge">{selectedSerieForCourses.classeCourse?.nomClasseCourse}</span>
+                </div>
+
+                <div class="add-course-section">
+                  <h3>➕ Ajouter une course à cette série</h3>
+                  <div class="add-course-row">
+                    <select bind:value={selectedClasseCourseIdToAdd} disabled={loading}>
+                      <option value="">-- Choisir une course --</option>
+                      {#each availableClassesCourseForSerie as c (c.id)}
+                        <option value={c.id}>{c.nomClasseCourse}</option>
+                      {/each}
+                    </select>
+                    <button 
+                      on:click={addCourseToSerie}
+                      class="btn-primary"
+                      disabled={!selectedClasseCourseIdToAdd || loading}
+                    >
+                      ➕ Ajouter
+                    </button>
+                  </div>
+                </div>
+
+                {#if seriesCourses.length > 0}
+                  <div class="table-wrapper">
+                    <h3>📊 Courses de cette série ({seriesCourses.length})</h3>
+                    <p class="section-hint">💡 Cliquez sur "Classement" pour voir les bateaux inscrits</p>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Ordre</th>
+                          <th>Course</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {#each seriesCourses as sc, idx (sc.id)}
+                          <tr>
+                            <td class="center"><strong>#{idx + 1}</strong></td>
+                            <td><strong>{sc.classeCourse?.nomClasseCourse}</strong></td>
+                            <td class="actions">
+                              <button 
+                                class="btn-info"
+                                on:click={() => showCourseLeaderboard(sc)}
+                                disabled={loading}
+                                title="Voir le classement des bateaux"
+                              >
+                                📊 Classement
+                              </button>
+                              <button 
+                                class="btn-delete"
+                                on:click={() => removeCourseFromSerie(sc.id)}
+                                disabled={loading}
+                                title="Retirer cette course de la série"
+                              >
+                                🗑️ Supprimer
+                              </button>
+                            </td>
+                          </tr>
+                        {/each}
+                      </tbody>
+                    </table>
+                  </div>
+                {:else}
+                  <div class="empty-state">
+                    <p>📭 Aucune course ajoutée à cette série</p>
+                    <p class="hint">Utilisez le formulaire ci-dessus pour en ajouter une</p>
+                  </div>
+                {/if}
+              </div>
+            {:else}
+              <div class="empty-state-large">
+                <p><strong>Sélectionnez une série pour gérer ses courses</strong></p>
+                <p class="hint">Créez une nouvelle série ou choisissez une série existante dans la liste de gauche</p>
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
+
+      <!-- MODAL LEADERBOARD -->
+      {#if showLeaderboardModal && selectedCourseForLeaderboard}
+        <div class="modal-overlay" on:click={() => showLeaderboardModal = false}>
+          <div class="modal" on:click={e => e.stopPropagation()}>
+            <div class="modal-header">
+              <h2>🏆 Leaderboard - {selectedCourseForLeaderboard.classeCourse?.nomClasseCourse}</h2>
+              <button class="close-btn" on:click={() => showLeaderboardModal = false}>✕</button>
+            </div>
+
+            <div class="modal-content">
+              {#if leaderboardData.length > 0}
+                <div class="leaderboard-info">
+                  <p>📊 <strong>{leaderboardData.length} bateau(x) inscrit(s)</strong></p>
+                </div>
+                <div class="leaderboard-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="rank">Classement</th>
+                        <th>Bateau</th>
+                        <th>Barreur</th>
+                        <th class="center">Voile</th>
+                        <th class="center">Classe</th>
+                        <th class="center">État</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {#each leaderboardData as entry, idx (entry.id)}
+                        <tr class="rank-{idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'neutral'}">
+                          <td class="rank">
+                            <span class="position">
+                              {#if idx === 0}🥇{:else if idx === 1}🥈{:else if idx === 2}🥉{:else}#{idx + 1}{/if}
+                            </span>
+                          </td>
+                          <td><strong>{entry.bateau?.nomBateau || 'N/A'}</strong></td>
+                          <td>{entry.bateau?.nomBarreur || 'N/A'}</td>
+                          <td class="center">{entry.bateau?.numeroVoile || '-'}</td>
+                          <td class="center">{entry.bateau?.classeBateau?.nomClasse || '-'}</td>
+                          <td class="center">
+                            <span class="status-badge">{entry.classement || '✓'}</span>
+                          </td>
+                        </tr>
+                      {/each}
+                    </tbody>
+                  </table>
+                </div>
+              {:else}
+                <div class="empty-leaderboard">
+                  <p>📭 Aucun bateau inscrit à cette course</p>
+                  <p class="hint">Vous pouvez ajouter des bateaux dans la section Courses</p>
+                </div>
+              {/if}
+            </div>
+          </div>
+        </div>
+      {/if}
 
     <!-- COURSES PAGE -->
     {:else if currentPage === 'courses'}
@@ -1134,5 +1370,476 @@
       padding: 10px 8px;
       font-size: 0.9em;
     }
+
+    .series-container {
+      grid-template-columns: 1fr;
+    }
   }
+
+  /* SERIES PAGE STYLES */
+  .series-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 20px;
+  }
+
+  .left-panel, .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .series-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .serie-item {
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .serie-item:hover {
+    background-color: #f0f0f0;
+    border-color: #bdc3c7;
+  }
+
+  .serie-item.active {
+    background-color: #d6eaf8;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .serie-header {
+    margin-bottom: 5px;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+
+  .serie-info {
+    color: #7f8c8d;
+    font-size: 0.9em;
+  }
+
+  .serie-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .add-course-section {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+
+  .add-course-section h3 {
+    margin-top: 0;
+    font-size: 1em;
+    color: #333;
+  }
+
+  .add-course-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .add-course-row select {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95em;
+  }
+
+  .add-course-row .btn-primary {
+    padding: 10px 16px;
+    white-space: nowrap;
+  }
+
+  .center {
+    text-align: center;
+  }
+
+  .empty-state-large {
+    background: white;
+    padding: 60px 20px;
+    border-radius: 12px;
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 1.2em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* MODAL LEADERBOARD */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .modal {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 700px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-header {
+    padding: 20px;
+    border-bottom: 2px solid #ecf0f1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    flex: 1;
+    color: white;
+  }
+
+  .close-btn {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
+
+  .leaderboard-table {
+    margin-top: 15px;
+  }
+
+  .leaderboard-table table {
+    margin: 0;
+  }
+
+  .leaderboard-table tbody tr:nth-child(odd) {
+    background-color: #fafafa;
+  }
+
+  .position {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 1.1rem;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .badge-ok {
+    background-color: #d5f4e6;
+    color: #27ae60;
+  }
+
+  .badge-DNS {
+    background-color: #fadbd8;
+    color: #c0392b;
+  }
+
+  .badge-ARF {
+    background-color: #fdebd0;
+    color: #e67e22;
+  }
+
+  .badge-OCS {
+    background-color: #fadbd8;
+    color: #c0392b;
+  }
+
+  tr.status-DNS,
+  tr.status-ARF,
+  tr.status-OCS {
+    background-color: #fef5e7;
+  }
+
+  .btn-info {
+    background-color: #2980b9;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+
+  .btn-info:hover:not(:disabled) {
+    background-color: #21618c;
+  }
+
+  /* GUIDE SECTION - Étapes explicites */
+  .guide-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+  }
+
+  .guide-step {
+    display: flex;
+    gap: 12px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    border-left: 4px solid #bdc3c7;
+    transition: all 0.3s ease;
+  }
+
+  .guide-step.active {
+    border-left-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  }
+
+  .guide-step:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .step-number {
+    font-size: 1.5em;
+    min-width: 40px;
+  }
+
+  .step-content {
+    flex: 1;
+  }
+
+  .step-content strong {
+    display: block;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+
+  .step-content p {
+    margin: 0;
+    color: #7f8c8d;
+    font-size: 0.9em;
+  }
+
+  /* Section hint - Indications contextuelles */
+  .section-hint {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #fffacd;
+    color: #8b7500;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-style: italic;
+    border-left: 4px solid #ffdc00;
+  }
+
+  /* Badges informatifs */
+  .badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+
+  .badge-info {
+    background-color: #c8e6c9;
+    color: #2e7d32;
+  }
+
+  /* En-tête de série sélectionnée */
+  .serie-selected-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .serie-selected-header h2 {
+    margin: 0;
+    color: #2c3e50;
+  }
+
+  .serie-selected-header .badge {
+    align-self: center;
+  }
+
+  /* États vides améliorés */
+  .empty-state {
+    background: #f9f9f9;
+    padding: 30px 20px;
+    border-radius: 12px;
+    text-align: center;
+    border: 2px dashed #bdc3c7;
+  }
+
+  .empty-state p {
+    margin: 10px 0;
+    color: #7f8c8d;
+  }
+
+  .empty-state p.hint {
+    font-size: 0.9em;
+    color: #95a5a6;
+    font-style: italic;
+  }
+
+  .empty-state-large {
+    background: white;
+    padding: 60px 20px;
+    border-radius: 12px;
+    text-align: center;
+    color: #7f8c8d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .empty-state-large .empty-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+  }
+
+  .empty-state-large p {
+    margin: 10px 0;
+  }
+
+  .empty-state-large p.hint {
+    font-size: 0.95em;
+    color: #95a5a6;
+    font-style: italic;
+  }
+
+  /* Leaderboard amélioré */
+  .leaderboard-info {
+    background-color: #e8f4f8;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    text-align: center;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+
+  .empty-leaderboard {
+    background: #f9f9f9;
+    padding: 30px 20px;
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .empty-leaderboard p {
+    margin: 10px 0;
+    color: #7f8c8d;
+  }
+
+  .empty-leaderboard p.hint {
+    font-size: 0.9em;
+    color: #95a5a6;
+    font-style: italic;
+  }
+
+  /* Classe des rangées de leaderboard pour les médailles */
+  tr.rank-gold {
+    background-color: #fff9e6;
+  }
+
+  tr.rank-silver {
+    background-color: #f5f5f5;
+  }
+
+  tr.rank-bronze {
+    background-color: #ffe6cc;
+  }
+
+  tr.rank-neutral {
+    background-color: #fafafa;
+  }
+
+  .rank {
+    font-weight: 600;
+    text-align: center;
+    min-width: 60px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    background-color: #d5f4e6;
+    color: #27ae60;
+  }
+
 </style>

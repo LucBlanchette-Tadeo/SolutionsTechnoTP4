@@ -149,3 +149,67 @@ export async function updateClassement(inscriptionId: number, classement: number
   if (!res.ok) throw new Error(`PATCH failed: ${res.status}`);
   return res.json();
 }
+
+// Serie Classe Course
+export async function listSerieClasseCourse() {
+  const res = await fetch(`${BASE}/serie-classe-course`);
+  if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getSerieClasseCourseBySerieId(serieId: number) {
+  const res = await fetch(`${BASE}/serie-classe-course/serie/${serieId}`);
+  if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+  return res.json();
+}
+
+export async function createSerieClasseCourse(payload: any) {
+  const res = await fetch(`${BASE}/serie-classe-course`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`POST failed: ${res.status}`);
+  return res.json();
+}
+
+export async function deleteSerieClasseCourse(id: number) {
+  const res = await fetch(`${BASE}/serie-classe-course/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+}
+
+// Leaderboard
+export async function getLeaderboardByCourse(classeCourseId: number) {
+  const res = await fetch(`${BASE}/leaderboard/course/${classeCourseId}`);
+  if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+  return res.json();
+}
+
+export async function createLeaderboardEntry(payload: any) {
+  const res = await fetch(`${BASE}/leaderboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`POST failed: ${res.status}`);
+  return res.json();
+}
+
+export async function updateLeaderboardEntry(id: number, payload: any) {
+  const res = await fetch(`${BASE}/leaderboard/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`PUT failed: ${res.status}`);
+  return res.json();
+}
+
+export async function deleteLeaderboardEntry(id: number) {
+  const res = await fetch(`${BASE}/leaderboard/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+}
