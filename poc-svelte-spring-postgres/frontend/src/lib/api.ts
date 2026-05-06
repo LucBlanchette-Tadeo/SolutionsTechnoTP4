@@ -213,3 +213,38 @@ export async function deleteLeaderboardEntry(id: number) {
   });
   if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
 }
+
+// Race Results avec Handicaps (PY/TMF)
+export async function submitRaceResult(classeCourseId: number, bateauId: number, 
+                                      tempsBrutSecondes: number, typeHandicap: string) {
+  const res = await fetch(`${BASE}/race-results/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classeCourseId, bateauId, tempsBrutSecondes, typeHandicap })
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || `POST failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function getRaceResults(classeCourseId: number) {
+  const res = await fetch(`${BASE}/race-results/course/${classeCourseId}`);
+  if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getRaceResult(id: number) {
+  const res = await fetch(`${BASE}/race-results/${id}`);
+  if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+  return res.json();
+}
+
+export async function deleteRaceResult(id: number) {
+  const res = await fetch(`${BASE}/race-results/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+  return res.json();
+}

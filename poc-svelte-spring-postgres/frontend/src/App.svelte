@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Login from './lib/Login.svelte';
   import Courses from './routes/courses.svelte';
+  import RaceResults from './lib/RaceResults.svelte';
 
   // États
   let isAuthenticated = false;
@@ -583,6 +584,12 @@
         >
           🏁 Courses
         </button>
+        <button 
+          class:active={currentPage === 'resultats'} 
+          on:click={() => goToPage('resultats')}
+        >
+          🎯 Résultats
+        </button>
         <div class="user-section">
           <span class="username">👤 {currentUsername}</span>
           <button class="logout-btn" on:click={handleLogout}>
@@ -969,6 +976,10 @@
     <!-- COURSES PAGE -->
     {:else if currentPage === 'courses'}
       <Courses />
+
+    <!-- RESULTATS PAGE -->
+    {:else if currentPage === 'resultats'}
+      <RaceResults />
     {/if}
   </main>
   {/if}

@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS utilisateur (
 -- Création de la table classe_bateau
 CREATE TABLE IF NOT EXISTS classe_bateau (
     id SERIAL PRIMARY KEY,
-    nom_classe VARCHAR(25) NOT NULL
+    nom_classe VARCHAR(25) NOT NULL,
+    py NUMERIC(10, 2),
+    tmf NUMERIC(10, 4)
 );
 
 -- Création de la table bateau
@@ -52,8 +54,33 @@ CREATE TABLE IF NOT EXISTS serie (
         REFERENCES classe_course(id)
 );
 
+-- Création de la table race_result (résultats de courses)
+CREATE TABLE IF NOT EXISTS race_result (
+    id SERIAL PRIMARY KEY,
+    classe_course_id INTEGER NOT NULL,
+    bateau_id INTEGER NOT NULL,
+    temps_brut_secondes NUMERIC NOT NULL,
+    temps_corrige_secondes NUMERIC,
+    type_handicap VARCHAR(10),
+    position_brute INTEGER,
+    position_corrigee INTEGER,
+    statut VARCHAR(50),
+    date_course TIMESTAMP,
+
+    CONSTRAINT fk_race_result_classe_course
+        FOREIGN KEY (classe_course_id)
+        REFERENCES classe_course(id),
+
+    CONSTRAINT fk_race_result_bateau
+        FOREIGN KEY (bateau_id)
+        REFERENCES bateau(id),
+
+    CONSTRAINT unique_race_bateau_class
+        UNIQUE (classe_course_id, bateau_id)
+);
+
 -- Insertion de données de test
-INSERT INTO classe_bateau (nom_classe) VALUES ('Laser') ON CONFLICT DO NOTHING;
-INSERT INTO classe_bateau (nom_classe) VALUES ('J70') ON CONFLICT DO NOTHING;
+INSERT INTO classe_bateau (nom_classe, py, tmf) VALUES ('Laser', 1050.00, 0.9800) ON CONFLICT DO NOTHING;
+INSERT INTO classe_bateau (nom_classe, py, tmf) VALUES ('J70', 1000.00, 0.9900) ON CONFLICT DO NOTHING;
 INSERT INTO classe_course (nom_classe_course, type_classe) VALUES ('Série 1', 'monotype') ON CONFLICT DO NOTHING;
 INSERT INTO classe_course (nom_classe_course, type_classe) VALUES ('Série 2', 'monotype') ON CONFLICT DO NOTHING;
