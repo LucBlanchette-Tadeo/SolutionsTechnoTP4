@@ -1,0 +1,45 @@
+étape 1. OUVRIR L'APPLICATION DOCKER DESKTOP
+
+étape 2. SUR UNE FENETRE POWERSHELL (ASSUREZ VOUS DE METTRE LE DOSSIER poc-svelte-spring-postgres SUR LE DESKTOP) :
+
+cd .\Desktop\poc-svelte-spring-postgres\db
+docker compose up -d
+
+étape 3. SUR LA MÊME FENÊTRE POWERSHELL :
+cd ..\backend
+./mvnw clean spring-boot:run
+
+ASSUREZ-VOUS DE GARDER LA FENÊTRE POWERSHELL OUVERTE, C'EST LE BACKEND
+
+étape 5. À LA RACINE DU PROJET SUR LE DESKTOP, RIGHT-CLIC, OUVRIR AVEC CODE
+
+étape 6. OUVRIR TERMINAL DE CODE :
+cd .\frontend
+npm install
+echo VITE_API_URL=http://localhost:8080/api > .env
+npm run dev -- --host
+
+
+----------------------------------------------
+
+POUR VOIR DONNÉES DATABASE
+
+Ouvrir pgAdmin
+
+add new server
+
+Dans l'onglet General :
+Name : Il faut donner un nom, il n'y a pas de mauvaise réponse, "poc" peut suffire
+
+Dans l'onglet Connection :
+Host name / address : localhost
+Port : 5433
+Maintenance database : pocdb
+Username : poc
+Password : poc
+
+NE RIEN TOUCHER SAUF CE QUI A ÉTÉ DIT SINON RISQUE DE NE PAS FONCTIONNER
+
+Save
+
+Pour observer les données c'est dans l'object explorer, Schemas -> Tables
