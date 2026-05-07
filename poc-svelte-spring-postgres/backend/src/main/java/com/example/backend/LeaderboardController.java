@@ -5,7 +5,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/leaderboard")
-@CrossOrigin(origins = "http://localhost:5173")
 public class LeaderboardController {
     private final LeaderboardService service;
     private final ClasseCourseRepository classeCourseRepository;

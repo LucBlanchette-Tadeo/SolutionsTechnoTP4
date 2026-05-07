@@ -16,12 +16,13 @@
   let bateaux: any[] = [];
   let classes: any[] = [];
   let series: any[] = [];
+  let courses: any[] = [];
   let classesCourse: any[] = [];
 
   // Formulaires
   let bateauForm = { nom: '', numero: '', barreur: '', classeId: '' };
   let classeForm = { nom: '' };
-  let serieForm = { nom: '', classeCourseId: '' };
+  let serieForm = { nom: '', nombreCourses: 0, nombreCoursesACompter: 0 };
   let classeCourseForm = { nom: '', type: 'monotype' };
 
   // État de modification
@@ -78,6 +79,16 @@
       const res = await fetch(`${API}/classe-course`);
       if (!res.ok) throw new Error('Erreur API');
       classesCourse = await res.json();
+    } catch (e: any) {
+      error = 'Erreur: ' + e.message;
+    }
+  }
+
+  async function fetchCourses() {
+    try {
+      const res = await fetch(`${API}/courses`);
+      if (!res.ok) throw new Error('Erreur API');
+      courses = await res.json();
     } catch (e: any) {
       error = 'Erreur: ' + e.message;
     }
@@ -261,10 +272,6 @@
       error = '❌ Le nom de la série est obligatoire';
       return;
     }
-    if (!serieForm.classeCourseId || serieForm.classeCourseId === '') {
-      error = '❌ La classe de course est obligatoire';
-      return;
-    }
     
     try {
       loading = true;
@@ -273,7 +280,8 @@
       
       const payload = {
         nomSerie: serieForm.nom.trim(),
-        classeCourse: { id: parseInt(serieForm.classeCourseId) }
+        nombreCourses: serieForm.nombreCourses || 0,
+        nombreCoursesACompter: serieForm.nombreCoursesACompter || 0
       };
       
       console.log('📤 Envoi série:', payload);
@@ -295,7 +303,7 @@
       console.log('✅ Série sauvegardée:', result);
       
       success = editingSerie ? '✅ Série modifiée avec succès!' : '✅ Série créée avec succès!';
-      serieForm = { nom: '', classeCourseId: '' };
+      serieForm = { nom: '', nombreCourses: 0, nombreCoursesACompter: 0 };
       editingSerie = null;
       await fetchSeries();
       setTimeout(() => { success = ''; }, 3000);
@@ -328,13 +336,14 @@
     editingSerie = serie;
     serieForm = {
       nom: serie.nomSerie,
-      classeCourseId: serie.classeCourse.id.toString()
+      nombreCourses: serie.nombreCourses || 0,
+      nombreCoursesACompter: serie.nombreCoursesACompter || 0
     };
   }
 
   function cancelEditSerie() {
     editingSerie = null;
-    serieForm = { nom: '', classeCourseId: '' };
+    serieForm = { nom: '', nombreCourses: 0, nombreCoursesACompter: 0 };
   }
 
   // ============= SERIE COURSES FUNCTIONS =============
@@ -783,14 +792,8 @@
                   bind:value={serieForm.nom}
                   disabled={loading}
                 />
-                <select bind:value={serieForm.classeCourseId} disabled={loading}>
-                  <option value="">-- Sélectionner la classe de course --</option>
-                  {#each classesCourse as cc (cc.id)}
-                    <option value={cc.id}>{cc.nomClasseCourse}</option>
-                  {/each}
-                </select>
                 <div class="form-buttons">
-                  <button type="submit" disabled={loading} class="btn-primary">
+                  <button type="submit" disabled={loading || !serieForm.nom} class="btn-primary">
                     {loading ? '⏳ Traitement...' : (editingSerie ? '💾 Mettre à jour' : '➕ Créer')}
                   </button>
                   {#if editingSerie}
@@ -816,7 +819,7 @@
                         <strong>{s.nomSerie}</strong>
                       </div>
                       <div class="serie-info">
-                        <small>Classe: {s.classeCourse?.nomClasseCourse}</small>
+                        <small>Courses: {s.nombreCourses} | À compter: {s.nombreCoursesACompter}</small>
                       </div>
                       <div class="serie-actions">
                         <button class="btn-edit" on:click|stopPropagation={() => editSerie(s)} disabled={loading}>✏️</button>
@@ -837,7 +840,7 @@
               <div class="table-section">
                 <div class="serie-selected-header">
                   <h2>🏁 Courses - {selectedSerieForCourses.nomSerie}</h2>
-                  <span class="badge">{selectedSerieForCourses.classeCourse?.nomClasseCourse}</span>
+                  <span class="badge">{selectedSerieForCourses.nombreCourses} courses | {selectedSerieForCourses.nombreCoursesACompter} à compter</span>
                 </div>
 
                 <div class="add-course-section">
@@ -962,10 +965,14 @@
                     </tbody>
                   </table>
                 </div>
+                <div class="add-bateau-section">
+                  <h3>➕ Ajouter un bateau</h3>
+                  <p class="hint">Pour inscrire d'autres bateaux disponibles</p>
+                </div>
               {:else}
                 <div class="empty-leaderboard">
                   <p>📭 Aucun bateau inscrit à cette course</p>
-                  <p class="hint">Vous pouvez ajouter des bateaux dans la section Courses</p>
+                  <p class="hint">Inscrivez des bateaux pour commencer</p>
                 </div>
               {/if}
             </div>
@@ -1774,21 +1781,6 @@
     text-align: center;
     color: #7f8c8d;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .empty-state-large .empty-icon {
-    font-size: 3em;
-    margin-bottom: 15px;
-  }
-
-  .empty-state-large p {
-    margin: 10px 0;
-  }
-
-  .empty-state-large p.hint {
-    font-size: 0.95em;
-    color: #95a5a6;
-    font-style: italic;
   }
 
   /* Leaderboard amélioré */

@@ -5,7 +5,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/serie-classe-course")
-@CrossOrigin(origins = "http://localhost:5173")
 public class SerieClasseCourseController {
     private final SerieClasseCourseService service;
     private final SerieRepository serieRepository;

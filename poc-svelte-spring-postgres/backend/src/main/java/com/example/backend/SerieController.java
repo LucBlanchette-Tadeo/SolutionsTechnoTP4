@@ -5,14 +5,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/series")
-@CrossOrigin(origins = "http://localhost:5173")
 public class SerieController {
     private final SerieService service;
-    private final ClasseCourseRepository classeCourseRepository;
+    private final ClasseBateauRepository classeBateauRepository;
 
-    public SerieController(SerieService service, ClasseCourseRepository classeCourseRepository) { 
+    public SerieController(SerieService service, ClasseBateauRepository classeBateauRepository) { 
         this.service = service; 
-        this.classeCourseRepository = classeCourseRepository; 
+        this.classeBateauRepository = classeBateauRepository; 
     }
 
     @GetMapping
@@ -23,12 +22,12 @@ public class SerieController {
         if (s.getNomSerie() == null || s.getNomSerie().isBlank()) {
             throw new RuntimeException("Nom de la série obligatoire");
         }
-        if (s.getClasseCourse() == null || s.getClasseCourse().getId() == null) {
-            throw new RuntimeException("Classe de course obligatoire");
+        // ClasseBateau n'est plus obligatoire - une série peut être créée sans classe de bateau
+        if (s.getClasseBateau() != null && s.getClasseBateau().getId() != null) {
+            Long cbid = s.getClasseBateau().getId();
+            ClasseBateau cb = classeBateauRepository.findById(cbid).orElseThrow(() -> new RuntimeException("Classe bateau introuvable: " + cbid));
+            s.setClasseBateau(cb);
         }
-        Long cid = s.getClasseCourse().getId();
-        ClasseCourse cc = classeCourseRepository.findById(cid).orElseThrow(() -> new RuntimeException("Classe course introuvable: " + cid));
-        s.setClasseCourse(cc);
         return service.save(s);
     }
 
@@ -41,10 +40,16 @@ public class SerieController {
         if (s.getNomSerie() != null && !s.getNomSerie().isBlank()) {
             existing.setNomSerie(s.getNomSerie());
         }
-        if (s.getClasseCourse() != null && s.getClasseCourse().getId() != null) {
-            ClasseCourse cc = classeCourseRepository.findById(s.getClasseCourse().getId())
-                .orElseThrow(() -> new RuntimeException("Classe course introuvable: " + s.getClasseCourse().getId()));
-            existing.setClasseCourse(cc);
+        if (s.getNombreCourses() != null) {
+            existing.setNombreCourses(s.getNombreCourses());
+        }
+        if (s.getNombreCoursesACompter() != null) {
+            existing.setNombreCoursesACompter(s.getNombreCoursesACompter());
+        }
+        if (s.getClasseBateau() != null && s.getClasseBateau().getId() != null) {
+            ClasseBateau cb = classeBateauRepository.findById(s.getClasseBateau().getId())
+                .orElseThrow(() -> new RuntimeException("Classe bateau introuvable: " + s.getClasseBateau().getId()));
+            existing.setClasseBateau(cb);
         }
         return service.save(existing);
     }

@@ -3,34 +3,30 @@
   import { 
     listClasseCourse,
     createClasseCourse,
-    listInscriptionsByCourse, 
-    getAvailableBateaux, 
-    addBateauToCourse, 
-    removeBateauFromCourse,
-    updateClassement
+    listClasseBateau
   } from '../lib/api';
 
-  let classesCourse: any[] = [];
-  let inscriptions: any[] = [];
-  let availableBateaux: any[] = [];
+  let courses: any[] = [];
+  let classesBateau: any[] = [];
   
-  let selectedCourseId: number | null = null;
-  let selectedBateauId: number | null = null;
   let loading = false;
   let message = '';
-  let editingClassementId: number | null = null;
-  let editingClassementValue: number | null = null;
   
   // Formulaire de création de course
   let newCourseName = '';
-  let newCourseType = '';
+  let selectedClasseBateauId: number | null = null;
 
-  async function loadCourses() {
-    classesCourse = await listClasseCourse();
+  async function loadData() {
+    try {
+      courses = await listClasseCourse();
+      classesBateau = await listClasseBateau();
+    } catch (error) {
+      message = `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
+    }
   }
 
   async function createNewCourse() {
-    if (!newCourseName || !newCourseType) {
+    if (!newCourseName || !selectedClasseBateauId) {
       message = 'Erreur: Veuillez remplir tous les champs';
       return;
     }
@@ -39,10 +35,15 @@
     message = '';
     
     try {
-      await createClasseCourse({ nomClasseCourse: newCourseName, typeClasse: newCourseType });
+      await createClasseCourse({
+        nomClasseCourse: newCourseName,
+        classeBateau: { id: selectedClasseBateauId }
+      });
+      
       newCourseName = '';
-      newCourseType = '';
-      await loadCourses();
+      selectedClasseBateauId = null;
+      
+      await loadData();
       message = 'Course créée avec succès!';
       setTimeout(() => message = '', 3000);
     } catch (error) {
@@ -52,552 +53,252 @@
     }
   }
 
-  async function selectCourse(courseId: number) {
-    selectedCourseId = courseId;
-    selectedBateauId = null;
-    loading = true;
-    message = '';
-    
-    try {
-      inscriptions = await listInscriptionsByCourse(courseId);
-      availableBateaux = await getAvailableBateaux(courseId);
-    } catch (error) {
-      message = `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function addBateau() {
-    if (!selectedCourseId || !selectedBateauId) return;
-    
-    loading = true;
-    message = '';
-    
-    try {
-      await addBateauToCourse(selectedBateauId, selectedCourseId);
-      selectedBateauId = null;
-      await selectCourse(selectedCourseId);
-      message = 'Bateau ajouté avec succès!';
-      setTimeout(() => message = '', 3000);
-    } catch (error) {
-      message = `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function removeBateau(inscriptionId: number) {
-    if (!selectedCourseId) return;
-    
-    loading = true;
-    message = '';
-    
-    try {
-      await removeBateauFromCourse(inscriptionId);
-      await selectCourse(selectedCourseId);
-      message = 'Bateau retiré avec succès!';
-      setTimeout(() => message = '', 3000);
-    } catch (error) {
-      message = `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
-    } finally {
-      loading = false;
-    }
-  }
-
-  function startEditClassement(inscriptionId: number, currentClassement: number | null) {
-    editingClassementId = inscriptionId;
-    editingClassementValue = currentClassement;
-  }
-
-  async function saveClassement(inscriptionId: number) {
-    loading = true;
-    message = '';
-    
-    try {
-      await updateClassement(inscriptionId, editingClassementValue);
-      await selectCourse(selectedCourseId!);
-      message = 'Classement mis à jour avec succès!';
-      editingClassementId = null;
-      editingClassementValue = null;
-      setTimeout(() => message = '', 3000);
-    } catch (error) {
-      message = `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
-    } finally {
-      loading = false;
-    }
-  }
-
-  function cancelEditClassement() {
-    editingClassementId = null;
-    editingClassementValue = null;
-  }
-
-  onMount(loadCourses);
+  onMount(loadData);
 </script>
 
 <style>
-  .container {
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+  :global(body) {
+    background-color: #f5f5f5;
   }
 
   h1 {
-    color: #333;
-    margin-bottom: 30px;
     text-align: center;
+    color: #333;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
   }
 
-  .message {
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 4px;
-    font-weight: 500;
+  h2 {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
   }
 
-  .message.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+  .alert {
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    animation: slideIn 0.3s ease-out;
   }
 
-  .message.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+  .alert-error {
+    background-color: #fee;
+    border-left: 4px solid #e74c3c;
+    color: #c0392b;
   }
 
-  .create-course-section {
-    background-color: white;
-    padding: 25px;
+  .alert-success {
+    background-color: #efe;
+    border-left: 4px solid #27ae60;
+    color: #229954;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .card {
+    background: white;
     border-radius: 8px;
-    border: 2px solid #667eea;
-    margin-bottom: 30px;
+    padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+    margin-bottom: 1.5rem;
   }
 
-  .create-course-section h2 {
-    color: #667eea;
-    margin-top: 0;
-    margin-bottom: 15px;
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
-  .create-form {
-    display: grid;
-    gap: 10px;
-    grid-template-columns: 1fr 1fr auto;
+  .form-group {
+    margin-bottom: 1rem;
   }
 
-  .create-form input {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-
-  .create-form button {
-    padding: 12px 20px;
-    background-color: #667eea;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+  label {
+    display: block;
     font-weight: 600;
-    transition: background-color 0.3s ease;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+    font-size: 0.95rem;
   }
 
-  .create-form button:hover:not(:disabled) {
-    background-color: #764ba2;
+  input, select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-family: inherit;
   }
 
-  .create-form button:disabled {
-    background-color: #ccc;
+  input:focus, select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  }
+
+  input:disabled, select:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    display: inline-block;
+  }
+
+  .btn-primary {
+    background-color: #3498db;
+    color: white;
+    width: 100%;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+  }
+
+  .btn-primary:disabled {
+    background-color: #bdc3c7;
     cursor: not-allowed;
   }
 
-  .course-selector {
-    margin-bottom: 30px;
-  }
-
-  .course-selector h2 {
-    font-size: 18px;
-    margin-bottom: 15px;
-    color: #555;
-  }
-
-  .course-grid {
+  .courses-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
   }
 
-  .course-btn {
-    padding: 16px;
-    background-color: white;
-    border: 2px solid #667eea;
+  .course-card {
+    background: white;
+    border: 2px solid #e0e0e0;
     border-radius: 8px;
+    padding: 1.25rem;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
     transition: all 0.3s ease;
-    text-align: left;
-    color: #000;
   }
 
-  .course-btn:hover {
-    background-color: #f0f0f0;
-    border-color: #764ba2;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-  }
-
-  .course-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-color: #667eea;
+  .course-card:hover {
+    border-color: #3498db;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+    transform: translateY(-2px);
   }
 
   .course-name {
     font-weight: 600;
-    margin-bottom: 6px;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
   }
 
-  .course-type {
-    font-size: 12px;
-    opacity: 0.8;
-  }
-
-  .content {
-    background-color: #f9f9f9;
-    padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-  }
-
-  .add-section {
-    margin-bottom: 30px;
-    padding-bottom: 25px;
-    border-bottom: 2px solid #ddd;
-  }
-
-  .add-section h3 {
-    font-size: 16px;
-    margin-bottom: 15px;
-    color: #333;
-  }
-
-  .add-form {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  select {
-    flex: 1;
-    min-width: 250px;
-    padding: 10px;
-    border: 1px solid #ddd;
+  .course-class {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    background-color: #f0f0f0;
+    padding: 0.25rem 0.5rem;
     border-radius: 4px;
-    font-size: 14px;
+    display: inline-block;
   }
 
-  button {
-    padding: 10px 20px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
-  }
-
-  button:hover:not(:disabled) {
-    background-color: #218838;
-  }
-
-  button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
-
-  .remove-btn {
-    background-color: #dc3545;
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  .remove-btn:hover:not(:disabled) {
-    background-color: #c82333;
-  }
-
-  .classement-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .classement-input {
-    width: 60px;
-    padding: 6px;
-    border: 2px solid #667eea;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .classement-button {
-    padding: 6px 10px;
-    font-size: 12px;
-    margin: 0;
-  }
-
-  .save-classement {
-    background-color: #28a745;
-  }
-
-  .save-classement:hover:not(:disabled) {
-    background-color: #218838;
-  }
-
-  .cancel-classement {
-    background-color: #6c757d;
-  }
-
-  .cancel-classement:hover:not(:disabled) {
-    background-color: #5a6268;
-  }
-
-  .edit-classement-btn {
-    background-color: #ffc107;
-    color: #000;
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  .edit-classement-btn:hover:not(:disabled) {
-    background-color: #e0a800;
-  }
-
-  .inscriptions-section {
-    margin-top: 20px;
-  }
-
-  .inscriptions-section h3 {
-    font-size: 16px;
-    margin-bottom: 15px;
-    color: #333;
-  }
-
-  .no-data {
+  .empty-state {
     text-align: center;
-    color: #999;
-    padding: 20px;
-    font-style: italic;
-  }
-
-  .table-responsive {
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: white;
-  }
-
-  th {
-    background-color: #f5f5f5;
-    padding: 12px;
-    text-align: left;
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #ddd;
-  }
-
-  td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-  }
-
-  tr:hover {
-    background-color: #fafafa;
+    color: #7f8c8d;
+    padding: 2rem;
+    font-size: 1.1rem;
   }
 
   @media (max-width: 768px) {
-    .container {
-      padding: 15px;
+    h1 {
+      font-size: 1.8rem;
     }
 
-    .create-form {
+    .courses-grid {
       grid-template-columns: 1fr;
-    }
-
-    .course-grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    }
-
-    .add-form {
-      flex-direction: column;
-    }
-
-    select {
-      min-width: unset;
-    }
-
-    table {
-      font-size: 13px;
-    }
-
-    th, td {
-      padding: 8px;
     }
   }
 </style>
 
 <div class="container">
   <h1>🏁 Gestion des Courses</h1>
-  
+
   {#if message}
-    <div class="message" class:success={message.includes('succès')} class:error={message.includes('Erreur')}>
+    <div class="alert alert-{message.includes('Erreur') ? 'error' : 'success'}">
       {message}
     </div>
   {/if}
 
-  <div class="create-course-section">
+  <!-- Création d'une nouvelle course -->
+  <div class="card">
     <h2>➕ Créer une nouvelle course</h2>
-    <div class="create-form">
-      <input 
-        type="text" 
-        placeholder="Nom de la course" 
-        bind:value={newCourseName}
-        disabled={loading}
-      />
-      <input 
-        type="text" 
-        placeholder="Type de bateau (ex: Laser, Optimist)" 
-        bind:value={newCourseType}
-        disabled={loading}
-      />
-      <button on:click={createNewCourse} disabled={loading || !newCourseName || !newCourseType}>
-        {loading ? 'Création...' : '✅ Créer'}
+    <form on:submit|preventDefault={createNewCourse}>
+      <div class="form-group">
+        <label>Nom de la course</label>
+        <input 
+          type="text" 
+          placeholder="Ex: Course Lacs - Classe IOM" 
+          bind:value={newCourseName}
+          disabled={loading}
+          required 
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Classe de bateau autorisée</label>
+        <select bind:value={selectedClasseBateauId} disabled={loading} required>
+          <option value={null}>-- Sélectionner une classe de bateau --</option>
+          {#each classesBateau as cb (cb.id)}
+            <option value={cb.id}>
+              {cb.nomClasse}
+            </option>
+          {/each}
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary" disabled={loading || !newCourseName || !selectedClasseBateauId}>
+        {loading ? '⏳ Création...' : '✅ Créer la course'}
       </button>
-    </div>
+    </form>
   </div>
 
-  <div class="course-selector">
-    <h2>Sélectionnez une course</h2>
-    <div class="course-grid">
-      {#each classesCourse as course (course.id)}
-        <button 
-          class="course-btn" 
-          class:active={selectedCourseId === course.id}
-          on:click={() => selectCourse(course.id)}
-        >
-          <div class="course-name">{course.nomClasseCourse}</div>
-          <div class="course-type">{course.typeClasse}</div>
-        </button>
-      {/each}
-    </div>
-  </div>
-
-  {#if selectedCourseId}
-    <div class="content">
-      <div class="add-section">
-        <h3>Ajouter un bateau à la course</h3>
-        <div class="add-form">
-          <select bind:value={selectedBateauId}>
-            <option value={null}>Sélectionner un bateau</option>
-            {#each availableBateaux as b (b.id)}
-              <option value={b.id}>
-                {b.nomBateau} ({b.numeroVoile}) - {b.nomBarreur}
-              </option>
-            {/each}
-          </select>
-          <button on:click={addBateau} disabled={!selectedBateauId || loading}>
-            {loading ? 'Ajout...' : '➕ Ajouter'}
-          </button>
-        </div>
-      </div>
-
-      <div class="inscriptions-section">
-        <h3>Bateaux inscrits ({inscriptions.length})</h3>
-        {#if inscriptions.length === 0}
-          <p class="no-data">Aucun bateau inscrit pour le moment</p>
-        {:else}
-          <div class="table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nom du bateau</th>
-                  <th>Numéro de voile</th>
-                  <th>Barreur</th>
-                  <th>Classement</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each inscriptions as insc (insc.id)}
-                  <tr>
-                    <td>{insc.bateau.nomBateau}</td>
-                    <td>{insc.bateau.numeroVoile}</td>
-                    <td>{insc.bateau.nomBarreur}</td>
-                    <td>
-                      {#if editingClassementId === insc.id}
-                        <div class="classement-cell">
-                          <input 
-                            type="number" 
-                            class="classement-input"
-                            bind:value={editingClassementValue}
-                            min="1"
-                            placeholder="Position"
-                            disabled={loading}
-                          />
-                          <button 
-                            class="classement-button save-classement"
-                            on:click={() => saveClassement(insc.id)}
-                            disabled={loading || editingClassementValue === null}
-                          >
-                            ✓
-                          </button>
-                          <button 
-                            class="classement-button cancel-classement"
-                            on:click={cancelEditClassement}
-                            disabled={loading}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      {:else}
-                        <div class="classement-cell">
-                          <span>{insc.classement || '—'}</span>
-                          <button 
-                            class="edit-classement-btn"
-                            on:click={() => startEditClassement(insc.id, insc.classement)}
-                            disabled={loading}
-                          >
-                            ✏️
-                          </button>
-                        </div>
-                      {/if}
-                    </td>
-                    <td>
-                      <button 
-                        class="remove-btn" 
-                        on:click={() => removeBateau(insc.id)}
-                        disabled={loading}
-                      >
-                        🗑️ Retirer
-                      </button>
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
+  <!-- Liste des courses existantes -->
+  <div class="card">
+    <h2>� Courses existantes ({courses.length})</h2>
+    {#if courses.length > 0}
+      <div class="courses-grid">
+        {#each courses as course (course.id)}
+          <div class="course-card">
+            <div class="course-name">{course.nomClasseCourse}</div>
+            <div class="course-class">{course.typeClasse}</div>
           </div>
-        {/if}
+        {/each}
       </div>
-    </div>
-  {/if}
+    {:else}
+      <p class="empty-state">Aucune course créée</p>
+    {/if}
+  </div>
 </div>

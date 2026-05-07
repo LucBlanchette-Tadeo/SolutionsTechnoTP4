@@ -13,8 +13,8 @@ public class Serie {
     private String nomSerie;
 
     @ManyToOne
-    @JoinColumn(name = "classe_course_id", nullable = false)
-    private ClasseCourse classeCourse;
+    @JoinColumn(name = "classe_bateau_id", nullable = true)
+    private ClasseBateau classeBateau;
 
     @Column(name = "nombre_courses", nullable = false)
     private Integer nombreCourses = 0;
@@ -25,11 +25,18 @@ public class Serie {
     // Constructeurs
     public Serie() {}
 
-    public Serie(String nomSerie, ClasseCourse classeCourse) {
+    public Serie(String nomSerie) {
         this.nomSerie = nomSerie;
-        this.classeCourse = classeCourse;
+        this.classeBateau = null;
         this.nombreCourses = 0;
         this.nombreCoursesACompter = 0;
+    }
+
+    public Serie(String nomSerie, Integer nombreCourses, Integer nombreCoursesACompter) {
+        this.nomSerie = nomSerie;
+        this.classeBateau = null;
+        this.nombreCourses = nombreCourses != null ? nombreCourses : 0;
+        this.nombreCoursesACompter = nombreCoursesACompter != null ? nombreCoursesACompter : 0;
     }
 
     // Getters et Setters
@@ -39,8 +46,8 @@ public class Serie {
     public String getNomSerie() { return nomSerie; }
     public void setNomSerie(String nomSerie) { this.nomSerie = nomSerie; }
 
-    public ClasseCourse getClasseCourse() { return classeCourse; }
-    public void setClasseCourse(ClasseCourse classeCourse) { this.classeCourse = classeCourse; }
+    public ClasseBateau getClasseBateau() { return classeBateau; }
+    public void setClasseBateau(ClasseBateau classeBateau) { this.classeBateau = classeBateau; }
 
     public Integer getNombreCourses() { return nombreCourses; }
     public void setNombreCourses(Integer nombreCourses) { this.nombreCourses = nombreCourses; }

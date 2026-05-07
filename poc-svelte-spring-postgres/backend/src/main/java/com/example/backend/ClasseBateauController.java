@@ -5,7 +5,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/classe-bateau")
-@CrossOrigin(origins = "http://localhost:5173")
 public class ClasseBateauController {
     private final ClasseBateauService service;
 

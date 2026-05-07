@@ -6,78 +6,70 @@
     listClasseCourse,
     getSerieClasseCourseBySerieId,
     createSerieClasseCourse,
-    deleteSerieClasseCourse,
-    getLeaderboardByCourse,
-    listBateaux
+    deleteSerieClasseCourse
   } from '$lib/api';
 
   let series: any[] = [];
   let classesCourse: any[] = [];
-  let bateaux: any[] = [];
-  let nom = '';
-  let classeCourseId = '';
-  let nombre = '0';
-  let aCompter = '0';
-  let error = '';
-  let success = '';
+  let message = '';
+  let loading = false;
+  
+  // Formulaire création série
+  let newSerieName = '';
+  let newSerieNombreCourses = '0';
+  let newSerieCoursesACompter = '0';
   
   let selectedSerieId: number | null = null;
   let seriesCourses: any[] = [];
   let availableClassesCourse: any[] = [];
-  let selectedClasseCourseId = '';
-  
-  let showLeaderboard = false;
-  let selectedCourse: any = null;
-  let leaderboard: any[] = [];
-  let editingLeaderboardId: number | null = null;
-  let editingPosition: number | null = null;
-  let editingPoints: number | null = null;
-  let editingStatut: string = '';
+  let selectedClasseCourseId: number | null = null;
 
-  async function load() {
+  async function loadData() {
     try {
       series = await listSeries();
       classesCourse = await listClasseCourse();
-      bateaux = await listBateaux();
     } catch (e) {
-      error = e.message || String(e);
-      setTimeout(() => error = '', 3000);
+      message = `Erreur: ${e instanceof Error ? e.message : String(e)}`;
+      setTimeout(() => message = '', 3000);
     }
   }
 
-  async function add() {
-    if (!nom || !classeCourseId) {
-      error = 'Veuillez remplir tous les champs';
+  async function createNewSerie() {
+    if (!newSerieName) {
+      message = 'Erreur: Veuillez entrer un nom de série';
       return;
     }
+    loading = true;
+    message = '';
+    
     try {
       await createSerie({ 
-        nomSerie: nom, 
-        classeCourse: { id: parseInt(classeCourseId) }, 
-        nombreCourses: parseInt(nombre || '0'), 
-        nombreCoursesACompter: parseInt(aCompter || '0') 
+        nomSerie: newSerieName, 
+        nombreCourses: parseInt(newSerieNombreCourses || '0'), 
+        nombreCoursesACompter: parseInt(newSerieCoursesACompter || '0') 
       });
-      nom = '';
-      classeCourseId = '';
-      nombre = '0';
-      aCompter = '0';
-      success = 'Série créée avec succès!';
-      setTimeout(() => success = '', 3000);
-      await load();
+      newSerieName = '';
+      newSerieNombreCourses = '0';
+      newSerieCoursesACompter = '0';
+      message = 'Série créée avec succès!';
+      setTimeout(() => message = '', 3000);
+      await loadData();
     } catch (e) {
-      error = e.message || String(e);
-      setTimeout(() => error = '', 3000);
+      message = `Erreur: ${e instanceof Error ? e.message : String(e)}`;
+    } finally {
+      loading = false;
     }
   }
 
   async function selectSerie(serieId: number) {
     selectedSerieId = serieId;
+    selectedClasseCourseId = null;
     try {
       seriesCourses = await getSerieClasseCourseBySerieId(serieId);
       updateAvailableClasses();
     } catch (e) {
-      error = e.message || String(e);
-      setTimeout(() => error = '', 3000);
+      message = `Erreur: ${e instanceof Error ? e.message : String(e)}`;
+      setTimeout(() => message = '', 3000);
     }
   }
 
@@ -88,124 +80,111 @@
 
   async function addCourseToSerie() {
     if (!selectedSerieId || !selectedClasseCourseId) {
-      error = 'Veuillez sélectionner une série et une course';
+      message = 'Erreur: Veuillez sélectionner une course';
       return;
     }
+    loading = true;
+    message = '';
+    
     try {
       await createSerieClasseCourse({
         serie: { id: selectedSerieId },
-        classeCourse: { id: parseInt(selectedClasseCourseId) },
+        classeCourse: { id: selectedClasseCourseId },
         ordreCourse: seriesCourses.length + 1
       });
-      selectedClasseCourseId = '';
-      success = 'Course ajoutée à la série!';
-      setTimeout(() => success = '', 3000);
+      selectedClasseCourseId = null;
+      message = 'Course ajoutée à la série!';
+      setTimeout(() => message = '', 3000);
       await selectSerie(selectedSerieId);
     } catch (e) {
-      error = e.message || String(e);
-      setTimeout(() => error = '', 3000);
+      message = `Erreur: ${e instanceof Error ? e.message : String(e)}`;
+    } finally {
+      loading = false;
     }
   }
 
   async function removeCourseFromSerie(id: number) {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette course de la série?')) return;
+    loading = true;
+    message = '';
+    
     try {
       await deleteSerieClasseCourse(id);
-      success = 'Course supprimée de la série!';
-      setTimeout(() => success = '', 3000);
+      message = 'Course supprimée de la série!';
+      setTimeout(() => message = '', 3000);
       await selectSerie(selectedSerieId!);
     } catch (e) {
-      error = e.message || String(e);
-      setTimeout(() => error = '', 3000);
+      message = `Erreur: ${e instanceof Error ? e.message : String(e)}`;
+    } finally {
+      loading = false;
     }
   }
 
-  async function showCourseLeaderboard(course: any) {
-    try {
-      selectedCourse = course;
-      leaderboard = await getLeaderboardByCourse(course.classeCourse.id);
-      showLeaderboard = true;
-    } catch (e) {
-      error = e.message || String(e);
-      setTimeout(() => error = '', 3000);
-    }
-  }
-
-  function closeLeaderboard() {
-    showLeaderboard = false;
-    selectedCourse = null;
-    leaderboard = [];
-    editingLeaderboardId = null;
-  }
-
-  function getBateauName(bateauId: number) {
-    const b = bateaux.find(b => b.id === bateauId);
-    return b ? `${b.nomBateau} (${b.numeroVoile})` : 'Inconnu';
-  }
-
-  onMount(load);
+  onMount(loadData);
 </script>
 
 <h1>📊 Gestion des Séries</h1>
 
-{#if error}
-  <div class="alert alert-error">{error}</div>
-{/if}
-{#if success}
-  <div class="alert alert-success">{success}</div>
+{#if message}
+  <div class="alert alert-{message.includes('Erreur') ? 'error' : 'success'}">
+    {message}
+  </div>
 {/if}
 
-<div class="main-container">
+<div class="container">
   <!-- PANNEAU GAUCHE: Créer et lister les séries -->
   <div class="left-section">
     <div class="card">
       <h2>➕ Créer une nouvelle série</h2>
-      <form on:submit|preventDefault={add}>
+      <form on:submit|preventDefault={createNewSerie}>
         <div class="form-group">
-          <label>Nom de la série *</label>
-          <input type="text" placeholder="Ex: Série d'été 2024" bind:value={nom} required />
-        </div>
-        
-        <div class="form-group">
-          <label>Classe de course *</label>
-          <select bind:value={classeCourseId} required>
-            <option value="">-- Sélectionner --</option>
-            {#each classesCourse as c}
-              <option value={c.id}>{c.nomClasseCourse}</option>
-            {/each}
-          </select>
+          <label>Nom de la série</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Championnat d'été 2024" 
+            bind:value={newSerieName}
+            disabled={loading}
+            required 
+          />
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Nombre de courses</label>
-            <input type="number" min="0" bind:value={nombre} />
+            <input 
+              type="number" 
+              min="0" 
+              bind:value={newSerieNombreCourses}
+              disabled={loading}
+            />
           </div>
           <div class="form-group">
             <label>Nombre à compter</label>
-            <input type="number" min="0" bind:value={aCompter} />
+            <input 
+              type="number" 
+              min="0" 
+              bind:value={newSerieCoursesACompter}
+              disabled={loading}
+            />
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">Créer la série</button>
+        <button type="submit" class="btn btn-primary" disabled={loading || !newSerieName}>
+          {loading ? '⏳ Création...' : '✅ Créer la série'}
+        </button>
       </form>
     </div>
 
     <div class="card">
-      <h2>📋 Séries existantes</h2>
+      <h2>📋 Séries existantes ({series.length})</h2>
       {#if series.length > 0}
         <div class="series-list">
-          {#each series as s}
+          {#each series as s (s.id)}
             <div 
               class="serie-item {selectedSerieId === s.id ? 'active' : ''}"
               on:click={() => selectSerie(s.id)}
             >
-              <div class="serie-header">
-                <strong>{s.nomSerie}</strong>
-              </div>
-              <div class="serie-info">
-                <small>Classe: {s.classeCourse?.nomClasseCourse}</small>
-              </div>
+              <div class="serie-header">{s.nomSerie}</div>
             </div>
           {/each}
         </div>
@@ -222,20 +201,23 @@
         <h2>🏁 Courses de la série</h2>
 
         <div class="add-course-section">
-          <h3>Ajouter une course</h3>
+          <h3>➕ Ajouter une course</h3>
           <div class="form-row">
-            <select bind:value={selectedClasseCourseId} class="flex-1">
-              <option value="">-- Sélectionner une course --</option>
-              {#each availableClassesCourse as c}
+            <select 
+              bind:value={selectedClasseCourseId}
+              disabled={loading || availableClassesCourse.length === 0}
+            >
+              <option value={null}>-- Sélectionner une course --</option>
+              {#each availableClassesCourse as c (c.id)}
                 <option value={c.id}>{c.nomClasseCourse}</option>
               {/each}
             </select>
             <button 
               on:click={addCourseToSerie}
               class="btn btn-secondary"
-              disabled={!selectedClasseCourseId}
+              disabled={!selectedClasseCourseId || loading}
             >
-              Ajouter
+              ➕ Ajouter
             </button>
           </div>
         </div>
@@ -251,22 +233,17 @@
                 </tr>
               </thead>
               <tbody>
-                {#each seriesCourses as sc, idx}
+                {#each seriesCourses as sc, idx (sc.id)}
                   <tr>
                     <td class="center">{idx + 1}</td>
-                    <td>{sc.classeCourse?.nomClasseCourse}</td>
+                    <td><strong>{sc.classeCourse?.nomClasseCourse}</strong></td>
                     <td class="actions">
-                      <button 
-                        class="btn btn-small btn-info"
-                        on:click={() => showCourseLeaderboard(sc)}
-                      >
-                        📊 Leaderboard
-                      </button>
                       <button 
                         class="btn btn-small btn-danger"
                         on:click={() => removeCourseFromSerie(sc.id)}
+                        disabled={loading}
                       >
-                        🗑️
+                        🗑️ Retirer
                       </button>
                     </td>
                   </tr>
@@ -285,55 +262,6 @@
     {/if}
   </div>
 </div>
-
-<!-- MODAL LEADERBOARD -->
-{#if showLeaderboard && selectedCourse}
-  <div class="modal-overlay" on:click={closeLeaderboard}>
-    <div class="modal" on:click={e => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>🏆 Leaderboard - {selectedCourse.classeCourse?.nomClasseCourse}</h2>
-        <button class="close-btn" on:click={closeLeaderboard}>✕</button>
-      </div>
-
-      <div class="modal-content">
-        {#if leaderboard.length > 0}
-          <div class="leaderboard-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Pos</th>
-                  <th>Bateau</th>
-                  <th>Barreur</th>
-                  <th>Voile</th>
-                  <th>Points</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each leaderboard as entry}
-                  <tr class={entry.statut ? 'status-' + entry.statut : ''}>
-                    <td class="position">{entry.position || '-'}</td>
-                    <td>{entry.bateau?.nomBateau || 'N/A'}</td>
-                    <td>{entry.bateau?.nomBarreur || 'N/A'}</td>
-                    <td class="center">{entry.bateau?.numeroVoile || '-'}</td>
-                    <td class="center"><strong>{entry.points}</strong></td>
-                    <td>
-                      <span class="badge {entry.statut ? 'badge-' + entry.statut : 'badge-ok'}">
-                        {entry.statut || 'OK'}
-                      </span>
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        {:else}
-          <p class="empty-state">📭 Aucun résultat pour cette course</p>
-        {/if}
-      </div>
-    </div>
-  </div>
-{/if}
 
 <style>
   :global(body) {
@@ -356,13 +284,16 @@
   h3 {
     color: #34495e;
     font-size: 1.1rem;
-    margin: 1rem 0 0.5rem 0;
+    margin: 0 0 0.5rem 0;
   }
 
   .alert {
     padding: 1rem;
     border-radius: 6px;
     margin-bottom: 1rem;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
     animation: slideIn 0.3s ease-out;
   }
 
@@ -389,7 +320,7 @@
     }
   }
 
-  .main-container {
+  .container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
@@ -424,6 +355,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    align-items: end;
   }
 
   label {
@@ -477,7 +409,11 @@
   .btn-primary:hover:not(:disabled) {
     background-color: #2980b9;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+  }
+
+  .btn-primary:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
   }
 
   .btn-secondary {
@@ -488,6 +424,12 @@
 
   .btn-secondary:hover:not(:disabled) {
     background-color: #7f8c8d;
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
   }
 
   .btn-small {
@@ -495,22 +437,17 @@
     font-size: 0.85rem;
   }
 
-  .btn-info {
-    background-color: #2980b9;
-    color: white;
-  }
-
-  .btn-info:hover {
-    background-color: #21618c;
-  }
-
   .btn-danger {
     background-color: #e74c3c;
     color: white;
   }
 
-  .btn-danger:hover {
+  .btn-danger:hover:not(:disabled) {
     background-color: #c0392b;
+  }
+
+  .btn-danger:disabled {
+    opacity: 0.6;
   }
 
   .series-list {
@@ -540,12 +477,8 @@
   }
 
   .serie-header {
-    margin-bottom: 0.5rem;
+    font-weight: 600;
     color: #2c3e50;
-  }
-
-  .serie-info {
-    color: #7f8c8d;
   }
 
   .add-course-section {
@@ -557,10 +490,6 @@
 
   .add-course-section h3 {
     margin-top: 0;
-  }
-
-  .flex-1 {
-    flex: 1;
   }
 
   table {
@@ -586,10 +515,6 @@
     border-bottom: 1px solid #ecf0f1;
   }
 
-  tbody tr {
-    transition: background-color 0.2s ease;
-  }
-
   tbody tr:hover {
     background-color: #f9f9f9;
   }
@@ -601,7 +526,6 @@
   .actions {
     display: flex;
     gap: 0.5rem;
-    flex-wrap: wrap;
   }
 
   .empty-state {
@@ -618,138 +542,8 @@
     justify-content: center;
   }
 
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  .modal {
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    max-width: 700px;
-    width: 90%;
-    max-height: 85vh;
-    overflow-y: auto;
-    animation: slideUp 0.3s ease-out;
-  }
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(30px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .modal-header {
-    padding: 2rem;
-    border-bottom: 2px solid #ecf0f1;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .modal-header h2 {
-    margin: 0;
-    flex: 1;
-  }
-
-  .close-btn {
-    background-color: #ecf0f1;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-  }
-
-  .close-btn:hover {
-    background-color: #e74c3c;
-    color: white;
-  }
-
-  .modal-content {
-    padding: 2rem;
-  }
-
-  .leaderboard-table table {
-    margin: 0;
-  }
-
-  .leaderboard-table tbody tr:nth-child(odd) {
-    background-color: #fafafa;
-  }
-
-  .position {
-    font-weight: bold;
-    color: #3498db;
-    font-size: 1.1rem;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .badge-ok {
-    background-color: #d5f4e6;
-    color: #27ae60;
-  }
-
-  .badge-DNS {
-    background-color: #fadbd8;
-    color: #c0392b;
-  }
-
-  .badge-ARF {
-    background-color: #fdebd0;
-    color: #e67e22;
-  }
-
-  .badge-OCS {
-    background-color: #fadbd8;
-    color: #c0392b;
-  }
-
-  tr.status-DNS,
-  tr.status-ARF,
-  tr.status-OCS {
-    background-color: #fef5e7;
-  }
-
   @media (max-width: 1024px) {
-    .main-container {
+    .container {
       grid-template-columns: 1fr;
     }
   }
@@ -761,6 +555,7 @@
 
     .form-row {
       grid-template-columns: 1fr;
+      align-items: stretch;
     }
 
     .actions {
@@ -769,21 +564,6 @@
 
     .actions .btn {
       width: 100%;
-    }
-
-    .modal {
-      width: 95%;
-      max-height: 90vh;
-    }
-
-    .modal-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-
-    .close-btn {
-      align-self: flex-end;
     }
   }
 </style>
